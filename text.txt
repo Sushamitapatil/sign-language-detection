@@ -1,0 +1,197 @@
+mediapipe 
+protobuf==3.20.1
+pyttsx3
+keras
+tensorflow
+wheel
+cvzone 
+pyenchant
+pywin32
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+def __init__(self):
+        # Initialize root window but keep hidden until login success
+        self.root = tk.Tk()
+        self.root.withdraw()
+
+        # Initialize variables
+        self.username = ""
+        self.vs = cv2.VideoCapture(0)
+        self.current_image = None
+        self.model = load_model("C:\\Users\\sushamita m.patil\\Desktop\\JGI\\Project\\Sign_Language_Converter\\cnn8grps_rad1_model.h5")
+        
+        self.speak_engine = pyttsx3.init()
+        self.speak_engine.setProperty("rate", 100)
+        voices = self.speak_engine.getProperty("voices")
+        self.speak_engine.setProperty("voice", voices[0].id)
+
+        self.ct = {'blank': 0}
+        self.blank_flag = 0
+        self.space_flag = False
+        self.next_flag = True
+        self.prev_char = ""
+        self.count = -1
+        self.ten_prev_char = [" "] * 10
+        for i in ascii_uppercase:
+            self.ct[i] = 0
+        print("Loaded model from disk")
+
+        self.str = " "
+        self.ccc = 0
+        self.word = " "
+        self.current_symbol = "C"
+        self.photo = "Empty"
+        self.word1 = " "
+        self.word2 = " "
+        self.word3 = " "
+        self.word4 = " "
+
+        # Show login window first
+        self.show_login_window()
+
+    def show_login_window(self):
+        self.login_window = tk.Toplevel()
+        self.login_window.title("User Login / Sign Up")
+        self.login_window.geometry("350x220")
+        self.login_window.configure(bg="#E6F7FF")
+        self.login_window.resizable(False, False)
+
+        tk.Label(self.login_window, text="Username:", font=("Courier", 14), bg="#E6F7FF").pack(pady=(15, 5))
+        self.username_entry = tk.Entry(self.login_window, font=("Arial", 12))
+        self.username_entry.pack(pady=5)
+
+        tk.Label(self.login_window, text="Password:", font=("Courier", 14), bg="#E6F7FF").pack(pady=(10, 5))
+        self.password_entry = tk.Entry(self.login_window, font=("Arial", 12), show="*")
+        self.password_entry.pack(pady=5)
+
+        btn_frame = tk.Frame(self.login_window, bg="#E6F7FF")
+        btn_frame.pack(pady=15)
+
+        login_btn = tk.Button(btn_frame, text="Login", font=("Arial", 12, "bold"),
+                              bg="#4CAF50", fg="white", width=10,
+                              command=self.login_user)
+        login_btn.grid(row=0, column=0, padx=10)
+
+        signup_btn = tk.Button(btn_frame, text="Sign Up", font=("Arial", 12, "bold"),
+                               bg="#2196F3", fg="white", width=10,
+                               command=self.sign_up_user)
+        signup_btn.grid(row=0, column=1, padx=10)
+
+    def login_user(self):
+        username = self.username_entry.get().strip()
+        password = self.password_entry.get().strip()
+
+        if not username or not password:
+            messagebox.showwarning("Input Error", "Please enter both username and password.")
+            return
+
+        # TODO: Replace this with your real credential check
+        # For now, accept all logins:
+        self.username = username
+        messagebox.showinfo("Login", f"Logging in user: {username}")
+        self.login_window.destroy()
+        self.load_main_ui()
+
+    def sign_up_user(self):
+        username = self.username_entry.get().strip()
+        password = self.password_entry.get().strip()
+
+        if not username or not password:
+            messagebox.showwarning("Input Error", "Please enter both username and password.")
+            return
+
+        # TODO: Replace with real signup logic
+        messagebox.showinfo("Sign Up", f"Signing up user: {username}")
+
+    def load_main_ui(self):
+        self.root.deiconify()
+        self.root.title("Sign Language To Text Conversion")
+        self.root.geometry("1300x750")
+        self.root.configure(bg="#f0f0f0")
+
+        bg_image = Image.open("C:\\Users\\sushamita m.patil\\Desktop\\JGI\\Project\\Sign_Language_Converter\\bg2.jpeg")
+        bg_photo = ImageTk.PhotoImage(bg_image.resize((1600, 850)))
+        bg_label = tk.Label(self.root, image=bg_photo)
+        bg_label.image = bg_photo
+        bg_label.place(x=0, y=0, relwidth=1, relheight=1)
+
+        self.user_label = tk.Label(self.root, text=f"👋 Welcome, {self.username}!",
+                                   font=("Courier", 16, "bold"), fg="#333", bg="#f0f0f0")
+        self.user_label.place(x=1000, y=50)
+
+        self.panel = tk.Label(self.root)
+        self.panel.place(x=100, y=70, width=480, height=500)
+
+        self.panel2 = tk.Label(self.root)  # initialize image panel
+        self.panel2.place(x=700, y=115, width=400, height=400)
+
+        title_img = Image.open("C:\\Users\\sushamita m.patil\\Desktop\\JGI\\Project\\Sign_Language_Converter\\images.jpg").resize((40, 40))
+        self.title_icon = ImageTk.PhotoImage(title_img)
+        self.T = tk.Label(self.root, text="Sign Language Converter", font=("Courier", 30, "bold"), image=self.title_icon,
+                          compound=tk.LEFT, bg="#f0f0f0")
+        self.T.place(x=380, y=7)
+
+        self.panel3 = tk.Label(self.root, bg="#f0f0f0")  # Current Symbol
+        self.panel3.place(x=300, y=580)
+
+        self.T1 = tk.Label(self.root, text="Character :", font=("Courier", 30, "bold"), bg="#f0f0f0")
+        self.T1.place(x=10, y=580)
+
+        self.panel5 = tk.Label(self.root, bg="#f0f0f0")  # Sentence
+        self.panel5.place(x=270, y=652)
+
+        self.T3 = tk.Label(self.root, text="Sentence :", font=("Courier", 30, "bold"), bg="#f0f0f0")
+        self.T3.place(x=10, y=652)
+
+        self.T4 = tk.Label(self.root, text="Suggestions :", fg="red", font=("Courier", 30, "bold"), bg="#f0f0f0")
+        self.T4.place(x=10, y=720)
+
+        self.b1 = tk.Button(self.root)
+        self.b1.place(x=350, y=720)
+        self.b2 = tk.Button(self.root)
+        self.b2.place(x=550, y=720)
+        self.b3 = tk.Button(self.root)
+        self.b3.place(x=750, y=720)
+        self.b4 = tk.Button(self.root)
+        self.b4.place(x=950, y=720)
+
+        speak_img = Image.open("C:\\Users\\sushamita m.patil\\Desktop\\JGI\\Project\\Sign_Language_Converter\\speak_icon.jpg").resize((30, 30))
+        clear_img = Image.open("C:\\Users\\sushamita m.patil\\Desktop\\JGI\\Project\\Sign_Language_Converter\\clear_icon.png").resize((30, 30))
+        gestures_img = Image.open("C:\\Users\\sushamita m.patil\\Desktop\\JGI\\Project\\Sign_Language_Converter\\gesture_icon.jpg").resize((30, 30))
+
+        self.speak_icon = ImageTk.PhotoImage(speak_img)
+        self.clear_icon = ImageTk.PhotoImage(clear_img)
+        self.gestures_icon = ImageTk.PhotoImage(gestures_img)
+
+        self.speak = tk.Button(self.root, text="Speak", font=("Courier", 20), image=self.speak_icon,
+                               compound=tk.LEFT, wraplength=175, command=self.speak_fun,
+                               bg="#4CAF50", fg="white", activebackground="#45a049", relief=tk.RAISED, bd=3)
+        self.speak.place(x=1200, y=200)
+
+        self.clear = tk.Button(self.root, text="Clear", font=("Courier", 20), image=self.clear_icon,
+                               compound=tk.LEFT, wraplength=175, command=self.clear_fun,
+                               bg="#f44336", fg="white", activebackground="#d32f2f", relief=tk.RAISED, bd=3)
+        self.clear.place(x=1200, y=300)
+
+        self.view = tk.Button(self.root, text="Gestures", font=("Courier", 20), image=self.gestures_icon,
+                              compound=tk.LEFT, wraplength=200, command=self.view_pic,
+                              bg="#2196F3", fg="white", activebackground="#1976D2", relief=tk.RAISED, bd=3)
+        self.view.place(x=1205, y=400)
+
+        self.video_loop()
